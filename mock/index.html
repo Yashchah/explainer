@@ -1,0 +1,737 @@
+<title>Binary Search in Two Minutes</title>
+<meta name="description" content="Inkline mock: a two-minute code-to-video lesson on binary search, rendered live from a deterministic timeline.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=JetBrains+Mono:wght@400;600;800&display=swap">
+<style>
+/* Layout: the video is a printed risograph sheet (a 1920x1080 stage scaled to fit) pinned to a pressboard page.
+   Three inks only: blue = code and data, pink = "look here now", yellow = found / correct. */
+:root{
+  --board:#D6D8CF;
+  --paper:#EFF0E9;
+  --card:#F8F8F3;
+  --ink:#1B1D26;
+  --blue:#2A47C4;
+  --pink:#EE2A8C;
+  --yellow:#FFE24A;
+  --mute:#6E7284;
+  --display:"Bricolage Grotesque","Arial Narrow",Arial,sans-serif;
+  --body:"Atkinson Hyperlegible","Helvetica Neue",Arial,sans-serif;
+  --mono:"JetBrains Mono","DejaVu Sans Mono",ui-monospace,monospace;
+  --mx:2px;--my:1px;
+  color-scheme:light;
+}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+html,body{background:var(--board);color:var(--ink)}
+body{margin:0;font-family:var(--body);font-size:16px;line-height:1.5;padding-inline:clamp(16px,3vw,40px);padding-block:20px 56px}
+.wrap{max-width:1280px;margin:0 auto;display:grid;gap:14px}
+header.top{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 24px}
+.mark{font-family:var(--display);font-weight:800;font-size:30px;letter-spacing:.01em;color:var(--blue);text-shadow:2px 1px 0 var(--pink)}
+.ep{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.ep b{background:var(--yellow);padding:1px 6px}
+
+/* ---------- screen + stage ---------- */
+.screen{position:relative;width:100%;max-width:100%;aspect-ratio:16/9;background:var(--paper);overflow:hidden;border-radius:3px;box-shadow:0 1px 0 rgba(27,29,38,.14),0 26px 48px -26px rgba(27,29,38,.6);cursor:pointer;user-select:none;-webkit-user-select:none}
+#stage{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0;overflow:hidden;background:var(--paper)}
+#world{position:absolute;inset:0}
+.scene{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0}
+.scene>*,.hud>*,#t-grp>*{position:absolute}
+.hud{position:absolute;inset:0;pointer-events:none}
+.disp{font-family:var(--display);font-weight:800;line-height:.95;letter-spacing:-.02em;white-space:nowrap}
+.mis{text-shadow:var(--mx) var(--my) 0 var(--pink)}
+.bl{color:var(--blue)} .pk{color:var(--pink)}
+.mono{font-family:var(--mono)}
+.sm{font-family:var(--mono);font-size:22px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
+.hl{background:linear-gradient(transparent 10%,var(--yellow) 10%,var(--yellow) 90%,transparent 90%);padding:0 .12em}
+.tag{font-family:var(--mono);font-size:26px;letter-spacing:.06em;text-transform:uppercase;padding:6px 14px;border:3px solid var(--ink);background:var(--card);white-space:nowrap}
+.card{background:var(--card);border:3px solid var(--ink);box-shadow:10px 10px 0 var(--blue)}
+.stamp{font-family:var(--display);font-weight:800;color:var(--pink);border:6px solid var(--pink);padding:2px 22px 6px;border-radius:12px;mix-blend-mode:multiply;text-transform:uppercase;white-space:nowrap;line-height:1.05}
+.d{display:inline-block;width:30px;height:30px;border-radius:50%}
+.d.pk{background:var(--pink)} .d.bl{background:var(--blue)}
+
+/* idea */
+.ruler{border:3px solid var(--ink);background-color:var(--card);background-image:linear-gradient(90deg,var(--ink) 2px,transparent 2px),linear-gradient(90deg,var(--ink) 3px,transparent 3px);background-size:16px 34%,160px 100%;background-repeat:repeat-x;background-position:-1px 100%,-1.5px 0}
+.rl{translate:-50% 0;font-family:var(--mono);font-size:22px}
+.disc{background-color:var(--paper);background-image:radial-gradient(circle,var(--mute) 30%,transparent 33%);background-size:9px 9px;opacity:.9}
+.brk{border:4px solid var(--blue);border-bottom:0}
+.mk{translate:-50% 0;background:var(--pink);color:var(--card);font-family:var(--mono);font-weight:800;font-size:34px;line-height:44px;padding:4px 16px;border-radius:8px;white-space:nowrap}
+.mk::after{content:"";position:absolute;left:calc(50% - 2px);top:100%;width:4px;height:108px;background:var(--pink)}
+#i-rp{translate:-50% 0}
+#i-rp.yes{background:var(--yellow);color:var(--ink);border-color:var(--ink)}
+#i-se{display:grid;place-items:center;align-content:center;gap:6px}
+.chips{display:flex;gap:14px;align-items:center}
+.chip{display:inline-block;font-family:var(--mono);font-weight:800;font-size:40px;padding:4px 18px;border:3px solid var(--ink);background:var(--card)}
+.arr{display:inline-block;font-family:var(--mono);font-size:34px;color:var(--pink)}
+#ic6{background:var(--yellow)}
+
+/* code */
+.code{font-family:var(--mono);font-size:34px;line-height:62px;padding:34px 44px 34px 0}
+.code .ln{position:relative;height:62px;padding-left:80px;white-space:pre}
+.code .ln::before{content:attr(data-n);position:absolute;left:0;width:56px;text-align:right;color:var(--mute);font-size:22px}
+#c-card{transform-origin:0 0}
+#c-hl{position:absolute;left:0;right:0;top:34px;height:62px;background:var(--pink);mix-blend-mode:multiply;opacity:0}
+.tk-k{color:var(--blue);font-weight:800}
+.tk-n,.tk-b{color:var(--blue)}
+.tk-o{color:var(--mute)}
+.tk-f{font-weight:800;text-decoration:underline;text-decoration-color:var(--pink);text-decoration-thickness:4px;text-underline-offset:7px}
+.cur{display:inline-block;width:18px;height:40px;background:var(--pink);vertical-align:-7px;margin-left:2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.ev{margin-left:20px;font-size:21px;font-weight:600;color:var(--card);background:var(--ink);padding:3px 12px;border-radius:5px;vertical-align:4px}
+.ev:empty{display:none}
+.mn{font-family:var(--display);font-weight:500;font-size:36px;line-height:50px;white-space:nowrap}
+.mn::before{content:"";position:absolute;right:calc(100% + 16px);top:24px;width:56px;height:4px;background:var(--pink)}
+
+/* trace */
+.cell{width:62px;height:90px;background:var(--card);border:3px solid var(--ink);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:800;font-size:28px}
+.cell.gone{color:var(--mute);border-color:var(--mute);background-color:var(--paper);background-image:radial-gradient(circle,rgba(110,114,132,.45) 28%,transparent 31%);background-size:8px 8px}
+.cell.found{background:var(--yellow);border-color:var(--ink);color:var(--ink)}
+.idx{width:62px;text-align:center;font-family:var(--mono);font-size:20px;color:var(--mute)}
+.ptr{translate:-50% 0;font-family:var(--mono);font-weight:800;font-size:24px;line-height:34px;padding:2px 12px;border-radius:5px;color:var(--card);white-space:nowrap}
+.ptr::before{content:"";position:absolute;left:calc(50% - 2px);bottom:100%;width:4px;height:var(--stem,40px);background:inherit}
+.ptr.lo,.ptr.hi{background:var(--blue)} .ptr.mid{background:var(--pink)}
+.cmp{translate:-50% 0;font-family:var(--mono);font-size:30px;font-weight:800;background:var(--ink);color:var(--card);padding:6px 16px;border-radius:6px;white-space:nowrap}
+.cmp::after{content:"";position:absolute;left:calc(50% - 10px);top:100%;border:10px solid transparent;border-top-color:var(--ink)}
+.cmp .v{margin-left:12px;padding:0 10px;border-radius:4px}
+.cmp .v.no{background:var(--mute)} .cmp .v.yes{background:var(--yellow);color:var(--ink)} .cmp .v.q{background:var(--pink)}
+#t-fd{translate:-50% 0}
+#t-ring{width:40px;height:40px;border:6px solid var(--pink);border-radius:50%;translate:-50% -50%}
+#t-scan{width:76px;height:104px;border:5px solid var(--blue);border-radius:8px;translate:-50% 0}
+.watch{display:flex;gap:18px}
+.wv{position:relative;width:236px;height:100px;border:3px solid var(--ink);background:var(--card);display:grid;align-content:center;padding:0 18px}
+.wv small{font-family:var(--mono);font-size:20px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.wv b{font-family:var(--mono);font-size:44px;line-height:1.05}
+.wv.fl{background:var(--yellow)}
+.row{display:flex;align-items:center;gap:14px;font-family:var(--mono);font-size:30px;white-space:nowrap}
+.row .lab{width:250px;font-size:24px;letter-spacing:.06em;text-transform:uppercase}
+.row b{margin-left:10px}
+
+/* speed */
+.sn{font-size:40px;font-weight:800;white-space:nowrap}
+.blin{height:36px;width:0;background:var(--blue)}
+.slv{font-size:30px;font-weight:800;white-space:nowrap}
+.sdots{display:flex;gap:8px;align-items:center}
+.sdots .d{width:22px;height:22px}
+.sdots b{margin-left:14px;font-family:var(--mono);font-size:28px;white-space:nowrap}
+.legend{display:flex;gap:28px;align-items:center;font-family:var(--mono);font-size:24px}
+.legend i{display:inline-block;width:34px;height:16px;margin-right:10px;vertical-align:1px}
+
+/* trap */
+.tcode{font-size:30px}
+.cm{color:var(--pink);margin-left:30px;font-weight:600}
+.xop{display:inline-block;padding:0 4px;border-radius:5px}
+.xop.bad{background:var(--pink);color:var(--card)}
+.xop.good{background:var(--yellow)}
+.xop.glitch{color:var(--pink);text-shadow:-5px 0 var(--blue),5px 0 var(--pink)}
+.xt-row{display:flex;align-items:center;gap:20px;margin:18px 0}
+.sticky{background:var(--yellow);padding:16px 26px;font-family:var(--display);font-weight:800;font-size:40px;box-shadow:6px 6px 0 var(--ink);rotate:-2deg;white-space:nowrap}
+
+/* recap */
+.ix{width:480px;height:340px;background:var(--card);border:3px solid var(--ink);padding:26px 34px;box-shadow:10px 10px 0 var(--pink)}
+.ix .num{font-family:var(--display);font-weight:800;font-size:116px;line-height:.9;color:var(--pink)}
+.ix .txt{font-family:var(--display);font-weight:800;font-size:46px;line-height:1.04;margin-top:18px;text-wrap:balance}
+.nexttag{background:var(--pink);color:var(--card);font-family:var(--mono);font-weight:800;font-size:30px;padding:12px 22px;white-space:nowrap}
+
+/* hud */
+#chap{left:56px;top:34px;display:flex;gap:10px}
+.pill{position:relative;font-family:var(--mono);font-size:20px;letter-spacing:.08em;text-transform:uppercase;padding:5px 12px;border:2px solid var(--mute);color:var(--mute);white-space:nowrap}
+.pill span{opacity:.7;margin-right:4px}
+.pill.past{border-color:var(--ink);color:var(--ink)}
+.pill.now{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.pill .pg{position:absolute;left:-2px;bottom:-9px;height:4px;width:0;background:var(--pink)}
+#brand{right:56px;top:40px;font-family:var(--mono);font-size:20px;letter-spacing:.12em;text-transform:uppercase}
+#cap{left:140px;right:140px;bottom:42px;display:flex;justify-content:center;text-align:center}
+#cap-in{font-family:var(--body);font-weight:700;font-size:50px;line-height:1.28;background:var(--paper);padding:6px 24px;border-radius:6px}
+#cap-in:empty{display:none}
+.w{opacity:.28}
+.w.on{opacity:1}
+.w.now{background:var(--yellow)}
+.w.b{color:var(--blue)} .w.p{color:var(--pink)}
+#pd{width:700px;padding:0;box-shadow:12px 12px 0 var(--pink);visibility:hidden}
+.pd-h{background:var(--pink);color:var(--card);font-family:var(--mono);font-weight:800;font-size:28px;letter-spacing:.12em;text-transform:uppercase;padding:14px 28px}
+.pd-b{padding:24px 28px 28px;display:grid;gap:22px}
+.pd-q{font-family:var(--display);font-weight:800;font-size:44px;line-height:1.08}
+.pd-c{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.choice{pointer-events:auto;font-family:var(--display);font-weight:800;font-size:38px;text-align:left;padding:14px 20px;border:3px solid var(--ink);background:var(--card);color:var(--ink);cursor:pointer;display:grid;gap:2px}
+.choice small{font-family:var(--mono);font-size:20px;font-weight:400;color:var(--mute)}
+.choice.picked{box-shadow:inset 0 0 0 5px var(--blue)}
+.choice.right{background:var(--yellow)}
+.choice.wrong{opacity:.4;text-decoration:line-through}
+.choice:focus-visible{outline:5px solid var(--pink);outline-offset:3px}
+.pd-f{display:flex;align-items:center;gap:20px;font-size:28px;line-height:1.25}
+#pd-n{font-family:var(--mono);font-weight:800;font-size:32px;fill:var(--ink)}
+#wipe{position:absolute;left:0;top:0;width:2300px;height:1080px;background:var(--pink);mix-blend-mode:multiply;display:flex;align-items:center;justify-content:center;visibility:hidden}
+#wipe-t{font-family:var(--display);font-weight:800;font-size:200px;color:var(--ink);white-space:nowrap}
+#grain{position:absolute;inset:0;mix-blend-mode:multiply;opacity:.4;pointer-events:none;background-size:256px 256px}
+
+/* poster */
+.poster{position:absolute;inset:0;display:grid;place-items:center;background:color-mix(in srgb,var(--paper) 62%,transparent)}
+.pbox{display:grid;gap:10px;justify-items:center;text-align:center;padding:16px}
+.pbox h1{font-family:var(--display);font-weight:800;font-size:clamp(26px,5.4vw,68px);line-height:.95;letter-spacing:-.02em;margin:0;color:var(--blue);text-shadow:3px 2px 0 var(--pink);text-wrap:balance}
+.bigplay{width:clamp(54px,9vw,92px);aspect-ratio:1;border-radius:50%;border:0;background:var(--ink);color:var(--card);display:grid;place-items:center;cursor:pointer}
+.bigplay:focus-visible{outline:4px solid var(--pink);outline-offset:4px}
+.ph{font-size:13px;color:var(--ink)}
+
+/* controls */
+.bar{display:flex;align-items:center;gap:10px 12px;flex-wrap:wrap}
+.btn{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:var(--card);color:var(--ink);border:2px solid var(--ink);padding:7px 11px;border-radius:4px;cursor:pointer;min-height:36px}
+.btn[aria-pressed="true"]{background:var(--ink);color:var(--card)}
+.btn:focus-visible,#scrub:focus-visible{outline:3px solid var(--pink);outline-offset:2px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+#play{width:44px;height:44px;padding:0;display:grid;place-items:center;background:var(--ink);color:var(--card)}
+#time{font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums;min-width:92px}
+#scrub{flex:1 1 300px;min-width:0;position:relative;height:42px;cursor:pointer;touch-action:none}
+.segs{position:absolute;left:0;right:0;top:6px;height:12px;display:flex;gap:3px}
+.seg{position:relative;height:100%;background:color-mix(in srgb,var(--ink) 16%,transparent)}
+.seg i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--blue)}
+.seg span{position:absolute;top:17px;left:0;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+#head{position:absolute;top:0;width:4px;height:24px;background:var(--pink);translate:-50% 0}
+#cap-ext{display:none;font-weight:700;font-size:17px;line-height:1.35;min-height:2.7em}
+@media (max-width:760px){.seg span{display:none}#scrub{height:26px}}
+@media (max-width:720px){#cap-ext{display:block}#cap{display:none}}
+.nocc #cap,.nocc #cap-ext{visibility:hidden}
+
+/* below */
+.below{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:14px;margin-top:6px}
+@media (max-width:860px){.below{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--paper);border:2px solid var(--ink);padding:18px 20px;min-width:0}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--blue)}
+.note-t{font-family:var(--display);font-weight:800;font-size:28px;line-height:1.05;margin:8px 0;text-wrap:balance}
+.panel p{margin:0;max-width:62ch}
+.panel h2{font-family:var(--display);font-weight:800;font-size:24px;line-height:1.1;margin:8px 0 12px;text-wrap:balance}
+ol.pipe{margin:0;padding:0;list-style:none;display:grid;gap:10px;counter-reset:p}
+ol.pipe li{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;align-items:start}
+ol.pipe li::before{counter-increment:p;content:counter(p);font-family:var(--mono);font-weight:800;font-size:12px;background:var(--ink);color:var(--paper);width:24px;height:24px;border-radius:50%;display:grid;place-items:center;margin-top:1px}
+ol.pipe b{font-family:var(--display);font-weight:800}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="mark">Inkline</div>
+    <div class="ep">Code-to-video mock · <b>EP 01</b> · Binary search · 2:00</div>
+  </header>
+
+  <div class="screen" id="screen">
+    <div id="stage">
+      <div id="world"></div>
+      <div class="hud" id="hud"></div>
+      <div id="wipe"><span id="wipe-t"></span></div>
+      <div id="grain"></div>
+    </div>
+    <div class="poster" id="poster">
+      <div class="pbox">
+        <div class="ep">Episode 01 · two minutes</div>
+        <h1>Binary search in two minutes</h1>
+        <button class="bigplay" id="bigplay" type="button" aria-label="Play the lesson"><svg width="40%" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z" fill="currentColor"/></svg></button>
+        <div class="ph">Click the video to pause. Arrow keys skip 5 seconds.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bar">
+    <button class="btn" id="play" type="button" aria-label="Play"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path id="play-ic" d="M7 4.5v15l12.5-7.5z" fill="currentColor"/></svg></button>
+    <span id="time">0:00 / 2:00</span>
+    <div id="scrub" role="slider" tabindex="0" aria-label="Seek" aria-valuemin="0" aria-valuemax="120" aria-valuenow="0"><div class="segs" id="segs"></div><div id="head"></div></div>
+    <button class="btn" id="spd" type="button" aria-label="Playback speed">1×</button>
+    <button class="btn" id="cc" type="button" aria-pressed="true">Captions</button>
+    <button class="btn" id="voice" type="button" aria-pressed="false">Voice</button>
+  </div>
+  <div id="cap-ext" aria-live="polite"></div>
+
+  <section class="below">
+    <div class="panel">
+      <div class="eyebrow">Why this moment works · <span id="nt-ch">Hook</span></div>
+      <div class="note-t" id="nt-t">Stakes before syntax</div>
+      <p id="nt-b"></p>
+    </div>
+    <div class="panel">
+      <div class="eyebrow">How the real tool would make this</div>
+      <h2>From a code file to a two-minute lesson</h2>
+      <ol class="pipe">
+        <li><span><b>Read the code.</b> Parse the function, find the loop, the branches and every variable that changes.</span></li>
+        <li><span><b>Plan seven beats.</b> Hook, idea, code, trace, payoff, trap, recap, fitted to 120 seconds.</span></li>
+        <li><span><b>Run it for real.</b> Execute on a small input and record each line and variable change. The trace drives the animation.</span></li>
+        <li><span><b>Write one sentence per visual change.</b> Keywords are tagged with the ink of the thing they name on screen.</span></li>
+        <li><span><b>Compose from scene templates.</b> Array stage, number line, race chart, bug card, recap cards.</span></li>
+        <li><span><b>Render deterministically.</b> Every frame is a function of time, so the same page exports to MP4 at 60 fps with a TTS voice track.</span></li>
+      </ol>
+    </div>
+  </section>
+</div>
+
+<script>
+(()=>{
+'use strict';
+const DUR=120;
+const $=s=>document.querySelector(s);
+const clamp=(v,a=0,b=1)=>v<a?a:v>b?b:v;
+const lerp=(a,b,p)=>a+(b-a)*p;
+const E={
+  out:p=>1-Math.pow(1-p,3),
+  inOut:p=>p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2,
+  back:p=>{const c=1.70158;return 1+(c+1)*Math.pow(p-1,3)+c*Math.pow(p-1,2)}
+};
+const pr=(t,a,b)=>clamp((t-a)/(b-a));
+const tw=(t,a,b,e=E.out)=>e(pr(t,a,b));
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const fmt=n=>Math.round(n).toLocaleString('en-US');
+function last(track,t){let v,prev,since=Infinity;for(const [tt,vv] of track){if(t>=tt){prev=v;v=vv;since=t-tt}else break}return {v,prev,since}}
+const tf=(e,x,y,s=1,r=0)=>{e.style.transform=`translate(${x}px,${y}px) scale(${s}) rotate(${r}deg)`};
+const op=(e,o)=>{e.style.opacity=o};
+const cam=(e,x,y,s)=>{e.style.transform=`translate(960px,540px) scale(${s}) translate(${-x}px,${-y}px)`};
+
+/* ================= LESSON SPEC ================= */
+const CH=[['Hook',0],['Idea',12],['Code',28],['Trace',48],['Speed',86],['Trap',100],['Recap',112]];
+// narration: [start, end, text]  [pink] = focus word, {blue} = code/data word
+const CAP=[
+ [0.3,4.2,'A [million] sorted numbers. You need to find one.'],
+ [4.4,8.4,'Checking them one by one could take a [million] looks.'],
+ [8.6,11.8,'Binary search needs about [twenty].'],
+ [12.2,16.6,"You already know the trick. I'm thinking of a number from 1 to 100."],
+ [16.8,22.4,'Guess the [middle]. Each answer, higher or lower, throws away [half].'],
+ [22.6,27.7,'100, 50, 25, 12, 6, 3, 1. Seven guesses, worst case.'],
+ [28.2,32.6,'Same idea, as code. Start with the whole range: {lo} and {hi}.'],
+ [32.8,36.8,'While anything is left, look at the [middle].'],
+ [37.0,41.0,"If it's the target, we're done."],
+ [41.2,47.7,'Too small? Drop the left half. Too big? Drop the right half.'],
+ [48.2,51.9,"Let's run it. Fifteen sorted numbers. We're looking for [23]."],
+ [52.0,55.0,'Anything left? Yes. So look at the middle: index 7.'],
+ [55.0,58.0,'It holds [45]. Too big...'],
+ [58.1,61.6,"...so 23 can't be on the right. {hi} drops to 6."],
+ [61.8,64.1,'New middle, index 3. It holds [12].'],
+ [64.2,68.5,'Pause. Which part can we throw away?'],
+ [68.6,73.4,'12 is too small, so the whole left side goes. {lo} jumps to 4.'],
+ [73.6,77.3,'Middle is index 5. It holds [23].'],
+ [77.4,79.7,'Found it. Return 5.'],
+ [79.8,85.6,'Three looks. Checking left to right would have taken six.'],
+ [86.2,91.2,'And the gap explodes as the data grows.'],
+ [91.4,95.8,'A thousand items: ten looks. A million: [twenty].'],
+ [96.0,99.7,"Double the data and you add just one look. That's {log n}."],
+ [100.2,104.6,'The classic bug: writing [lo < hi] instead of {lo <= hi}.'],
+ [104.8,108.6,'With one item left, lo equals hi, and the loop quits before checking it.'],
+ [108.8,111.7,'Keep the equals sign. And the list must be [sorted].'],
+ [112.2,116.2,"Guess the middle. Drop the half that can't hold it. Repeat."],
+ [116.4,119.9,'Twenty looks for a million. Next: searching a rotated array.']
+];
+const NOTES=[
+ [0,'Hook','Stakes before syntax','Open on a concrete, oversized problem: a million numbers. The viewer wants the answer before any code appears, and the dot field makes "a million looks" something you can see.'],
+ [12,'Idea','Concrete before abstract','A game everyone has played carries the whole algorithm. The code that follows only gives names to what the viewer already understands.'],
+ [28,'Code','Every line earns its place','Code types in one line at a time, each tied to a margin note in the words of the game. The camera leans toward the line being written. No full-screen code dumps.'],
+ [48,'Trace','One focus at a time','The active line, the mid pointer and the caption keyword share one ink. Inline values sit on the line itself, the way a debugger shows them.'],
+ [64.2,'Trace','Pause and predict','The viewer commits to an answer before the reveal. A three-second timer keeps the video moving; in the player you can tap a choice.'],
+ [68.6,'Trace','Show state, not just output','Variables are objects you can watch move. Discarded cards stay on screen, greyed out, so the halving is visible rather than described.'],
+ [86,'Speed','Make the payoff felt','Countable dots against a bar that runs off the page. Three sizes, then the doubling rule: twice the data costs one more look.'],
+ [100,'Trap','Teach the bug on purpose','The most common mistake fails on the smallest possible input, then gets fixed on screen. A broken example sticks better than a rule.'],
+ [112,'Recap','Close the loop','Three steps in the same words used all along, then a hook into the next episode.']
+];
+// idea: guess-my-number (secret 41) [time, guess, reply, lo, hi]
+const GU=[[17.0,50,'lower',1,49],[18.1,25,'higher',26,49],[19.2,37,'higher',38,49],[20.3,43,'lower',38,42],[21.4,40,'higher',41,42],[22.5,41,'yes!',41,41]];
+// code + typing schedule
+const CODE=['def search(nums, target):','    lo, hi = 0, len(nums) - 1','    while lo <= hi:','        mid = (lo + hi) // 2','        if nums[mid] == target:','            return mid','        if nums[mid] < target:','            lo = mid + 1','        else:','            hi = mid - 1','    return -1'];
+const TYPE=[28.4,29.6,32.9,34.7,37.1,38.1,41.3,42.3,43.9,44.7,46.1];
+const MN=[[1,29.9,'the range still in play'],[2,33.2,'anything left?'],[3,35.0,'guess the middle'],[4,37.5,'hit? done'],[6,41.6,'too small: drop the left half'],[8,44.1,'too big: drop the right half'],[10,46.4,'nothing left: not here']];
+// execution trace of search(NUMS, 23) - in the real tool this comes from running the code
+const NUMS=[2,5,8,12,16,23,38,45,56,61,72,77,85,91,99];
+const STEPS=[
+ {t:50.4,line:1,ev:'lo = 0, hi = 14',lo:0,hi:14},
+ {t:52.2,line:2,ev:'0 <= 14: keep going'},
+ {t:53.2,line:3,ev:'mid = 7',mid:7},
+ {t:55.0,line:4,ev:'45 == 23? no',cmp:['45','==','23','no']},
+ {t:56.2,line:6,ev:'45 < 23? no',cmp:['45','<','23','no']},
+ {t:57.4,line:8,ev:'so 45 > 23'},
+ {t:58.2,line:9,ev:'hi = 6',hi:6,drop:[7,14]},
+ {t:60.4,line:2,ev:'0 <= 6: keep going'},
+ {t:61.8,line:3,ev:'mid = 3',mid:3},
+ {t:63.0,line:4,ev:'12 == 23? no',cmp:['12','==','23','no']},
+ {t:64.2,line:6,ev:'12 < 23?',cmp:['12','<','23','?']},
+ {t:68.6,line:6,ev:'12 < 23? yes',cmp:['12','<','23','yes']},
+ {t:70.4,line:7,ev:'lo = 4',lo:4,drop:[0,3]},
+ {t:73.6,line:2,ev:'4 <= 6: keep going'},
+ {t:74.4,line:3,ev:'mid = 5',mid:5},
+ {t:76.0,line:4,ev:'23 == 23? yes',cmp:['23','==','23','yes']},
+ {t:77.4,line:5,ev:'return 5',found:5},
+ {t:79.8,line:-1}
+];
+const LO=[],HI=[],MID=[],CMP=[],DROPS=[],HLT=TYPE.map((tt,i)=>[tt,i]);
+let FOUND=null;
+HLT.push([47.9,-1]);
+for(const s of STEPS){
+  if(s.lo!=null)LO.push([s.t,s.lo]);
+  if(s.hi!=null)HI.push([s.t,s.hi]);
+  if(s.mid!=null)MID.push([s.t,s.mid]);
+  CMP.push([s.t,s.cmp||null]);
+  if(s.drop)DROPS.push([s.t,...s.drop]);
+  if(s.found!=null)FOUND=[s.t,s.found];
+  HLT.push([s.t,s.line]);
+}
+const SR=[[15,4,330,87.4],[1000,10,500,91.4],[1e6,20,670,93.6]]; // [n, binary looks, y, reveal time]
+
+/* ================= BUILD ================= */
+const stage=$('#stage'),world=$('#world'),hud=$('#hud'),screen=$('#screen'),poster=$('#poster');
+const S={};
+['hook','idea','code','speed','trap','recap'].forEach(k=>{const d=document.createElement('div');d.className='scene';world.appendChild(d);S[k]=d});
+
+S.hook.innerHTML=`
+<div id="hk-big" class="disp mis bl" style="left:0;top:80px;width:1920px;text-align:center;font-size:230px">1,000,000</div>
+<div id="hk-sub" class="disp" style="left:0;top:322px;width:1920px;text-align:center;font-size:60px;font-weight:500">sorted numbers. Find <span class="pk" style="font-weight:800">one</span>.</div>
+<canvas id="hk-cv" width="1250" height="360" style="left:570px;top:440px"></canvas>
+<div id="hk-cl" class="mono" style="left:110px;top:470px;font-size:24px;letter-spacing:.08em;text-transform:uppercase">checking one by one</div>
+<div id="hk-cn" class="mono" style="left:104px;top:508px;font-size:92px;font-weight:800;font-variant-numeric:tabular-nums">0</div>
+<div id="hk-cu" class="sm" style="left:110px;top:625px">looks so far</div>
+<div id="hk-st" class="stamp" style="left:880px;top:540px;font-size:120px">&asymp; 20 looks</div>`;
+
+const rx=n=>160+(n-.5)*16;
+const RL=[1,10,20,30,40,50,60,70,80,90,100];
+S.idea.innerHTML=`
+<div class="disp mis bl" id="i-ti" style="left:120px;top:100px;font-size:118px">Guess my number</div>
+<div class="tag" id="i-rg" style="left:124px;top:248px">between 1 and 100</div>
+<div class="mono" id="i-left" style="left:520px;top:256px;font-size:26px"></div>
+<div class="card" id="i-se" style="left:1500px;top:100px;width:300px;height:180px"><div class="sm">secret</div><div class="disp" id="i-sv" style="font-size:100px;line-height:1">?</div></div>
+<div class="ruler" id="i-ru" style="left:160px;top:560px;width:1600px;height:60px"></div>
+${RL.map(n=>`<div class="rl" id="rl${n}" style="left:${rx(n)}px;top:630px">${n}</div>`).join('')}
+<div class="disc" id="i-dl" style="left:163px;top:563px;height:54px;width:0"></div>
+<div class="disc" id="i-dr" style="left:1757px;top:563px;height:54px;width:0"></div>
+<div class="brk" id="i-br" style="left:160px;top:526px;width:1600px;height:22px"></div>
+<div class="mk" id="i-mk" style="left:960px;top:400px">50?</div>
+<div class="stamp" id="i-rp" style="left:960px;top:296px;font-size:54px">lower</div>
+<div class="chips" id="i-ch" style="left:160px;top:704px">${['100','50','25','12','6','3','1'].map((c,i)=>(i?`<span class="arr" id="ia${i}">&rarr;</span>`:'')+`<span class="chip" id="ic${i}">${c}</span>`).join('')}</div>
+<div class="tag" id="i-wc" style="left:1240px;top:714px">7 guesses, worst case</div>`;
+
+const CX=150,CY=120,LH=62,CP=34,CW=940;
+const AX=820,CSTEP=70,AY=370;
+const ccx=i=>AX+i*CSTEP+31;
+S.code.innerHTML=`
+<div class="card code" id="c-card" style="left:0;top:0;width:${CW}px">
+  <div id="c-hl"></div>
+  ${CODE.map((l,i)=>`<div class="ln" data-n="${i+1}"><span id="c-l${i}"></span><span class="ev" id="c-e${i}"></span></div>`).join('')}
+</div>
+${MN.map(([ln,tt,tx],j)=>`<div class="mn" id="mn${j}" style="left:${CX+CW+80}px;top:${CY+CP+ln*LH+6}px">${esc(tx)}</div>`).join('')}
+<div id="t-grp" style="left:0;top:0;width:1920px;height:1080px">
+  <div class="tag" id="t-tg" style="left:${AX}px;top:190px">target = <span class="hl">23</span></div>
+  <div class="tag" id="t-lk" style="right:58px;top:190px">looks: <b id="t-lkn">0</b></div>
+  ${NUMS.map((v,i)=>`<div class="cell" id="cl${i}" style="left:${AX+i*CSTEP}px;top:${AY}px">${v}</div><div class="idx" style="left:${AX+i*CSTEP}px;top:${AY+98}px">${i}</div>`).join('')}
+  <div class="ptr mid" id="p-mid" style="left:0;top:520px;--stem:26px">mid</div>
+  <div class="ptr lo" id="p-lo" style="left:0;top:572px;--stem:78px">lo</div>
+  <div class="ptr hi" id="p-hi" style="left:0;top:624px;--stem:130px">hi</div>
+  <div class="cmp" id="t-cmp" style="left:0;top:282px"></div>
+  <div id="t-scan" style="left:0;top:${AY-7}px"></div>
+  <div id="t-ring" style="left:${ccx(5)}px;top:${AY+45}px"></div>
+  <div class="stamp" id="t-fd" style="left:${ccx(5)}px;top:252px;font-size:56px">found</div>
+  <div class="watch" id="t-w" style="left:${AX}px;top:700px">${['lo','hi','mid','nums[mid]'].map((k,i)=>`<div class="wv" id="wv${i}"><small>${k}</small><b id="w${i}">&ndash;</b></div>`).join('')}</div>
+  <div class="row" id="t-ra" style="left:${AX}px;top:700px"><span class="lab">binary search</span>${[0,1,2].map(i=>`<i class="d pk" id="da${i}"></i>`).join('')}<b>3 looks</b></div>
+  <div class="row" id="t-rb" style="left:${AX}px;top:775px"><span class="lab">left to right</span>${[0,1,2,3,4,5].map(i=>`<i class="d bl" id="db${i}"></i>`).join('')}<b>6 looks</b></div>
+</div>`;
+
+S.speed.innerHTML=`
+<div class="disp mis bl" id="s-ti" style="left:120px;top:110px;font-size:96px">Looks needed</div>
+<div class="tag" id="s-st" style="left:124px;top:228px">worst case</div>
+<div class="legend" id="s-lg" style="left:380px;top:236px"><span><i style="background:var(--blue)"></i>one by one</span><span><i style="background:var(--pink);border-radius:8px;width:16px"></i>binary search</span></div>
+${SR.map(([n,b,y],i)=>`
+<div class="mono sn" id="sn${i}" style="left:120px;top:${y-4}px">n = ${fmt(n)}</div>
+<div class="blin" id="sb${i}" style="left:480px;top:${y}px"></div>
+<div class="mono slv" id="sl${i}" style="left:490px;top:${y-1}px"></div>
+<div class="sdots" id="sd${i}" style="left:480px;top:${y+52}px">${'<i class="d pk"></i>'.repeat(b)}<b class="pk">${b} looks</b></div>`).join('')}
+<div class="card" id="s-db" style="left:1220px;top:96px;width:600px;padding:16px 26px"><div class="sm">double the data</div><div class="disp" style="font-size:54px;line-height:1.15">2,000,000 &rarr; <span class="pk">21 looks</span></div><div style="font-size:26px">One more look. That's all it costs.</div></div>
+<div class="stamp" id="s-on" style="left:1200px;top:410px;font-size:120px">O(log n)</div>`;
+
+S.trap.innerHTML=`
+<div class="disp mis bl" id="x-ti" style="left:120px;top:110px;font-size:96px">The classic bug</div>
+<div class="card code tcode" id="x-code" style="left:120px;top:270px;width:1060px">
+ <div class="ln" data-n="2">    lo, hi = <span class="tk-n">0</span>, <span class="tk-b">len</span>(nums) - <span class="tk-n">1</span><span class="cm" id="x-c0"></span></div>
+ <div class="ln" data-n="3">    <span class="tk-k">while</span> lo <span class="xop" id="x-op">&lt;=</span> hi:<span class="cm" id="x-c1"></span></div>
+ <div class="ln" data-n="4">        <span class="tk-o">...</span><span class="cm" id="x-c2"></span></div>
+ <div class="ln" data-n="11">    <span class="tk-k">return</span> <span class="tk-n">-1</span><span class="cm" id="x-c3"></span></div>
+</div>
+<div class="card" id="x-test" style="left:1260px;top:270px;width:540px;padding:22px 28px">
+ <div class="mono" style="font-size:30px;font-weight:800">search([7], 7)</div>
+ <div class="xt-row"><div class="cell">7</div><div class="sm" style="white-space:nowrap">index 0<br>lo = hi = 0</div></div>
+ <div class="mono" style="font-size:30px;white-space:nowrap">expected <b>0</b> &middot; got <b id="x-got">&hellip;</b></div>
+</div>
+<div class="stamp" id="x-bug" style="left:1530px;top:190px;font-size:76px">bug</div>
+<div class="sticky" id="x-so" style="left:1260px;top:640px">&#9888; Only works on sorted input</div>`;
+
+S.recap.innerHTML=[['1','Guess the middle'],['2',"Drop the half that can't hold it"],['3','Repeat until found, or nothing is left']].map(([n,tx],i)=>`<div class="ix" id="r-${i}" style="left:${150+i*560}px;top:230px"><div class="num">${n}</div><div class="txt">${esc(tx)}</div></div>`).join('')+`
+<div class="mono" id="r-ft" style="left:150px;top:640px;font-size:36px;font-weight:800;white-space:nowrap">1,000,000 items &rarr; 20 looks &middot; <span class="pk">O(log n)</span></div>
+<div class="nexttag" id="r-nx" style="left:150px;top:720px">Next episode &rarr; binary search on a rotated array</div>`;
+
+hud.innerHTML=`
+<div id="chap">${CH.map(([n],i)=>`<div class="pill" id="ch${i}"><span>${String(i+1).padStart(2,'0')}</span>${n}<i class="pg" id="pg${i}"></i></div>`).join('')}</div>
+<div id="brand">Inkline &middot; EP 01</div>
+<div id="cap"><span id="cap-in"></span></div>
+<div class="card" id="pd" style="left:60px;top:190px">
+  <div class="pd-h">Pause &amp; predict</div>
+  <div class="pd-b">
+    <div class="pd-q">nums[mid] is <span class="hl">12</span>. The target is <span class="hl">23</span>. Which part can we throw away?</div>
+    <div class="pd-c">
+      <button class="choice" id="pc-L" type="button">Left part<small>indexes 0&ndash;3</small></button>
+      <button class="choice" id="pc-R" type="button">Right part<small>indexes 3&ndash;6</small></button>
+    </div>
+    <div class="pd-f"><svg width="84" height="84" viewBox="0 0 84 84" aria-hidden="true"><circle cx="42" cy="42" r="34" fill="none" stroke="var(--mute)" stroke-opacity=".3" stroke-width="8"/><circle id="pd-ring" cx="42" cy="42" r="34" fill="none" stroke="var(--pink)" stroke-width="8" stroke-dasharray="213.6" stroke-dashoffset="0" transform="rotate(-90 42 42)"/><text id="pd-n" x="42" y="54" text-anchor="middle">3</text></svg><span id="pd-fb"></span></div>
+  </div>
+</div>`;
+
+$('#segs').innerHTML=CH.map(([n,ts],i)=>{const end=i<CH.length-1?CH[i+1][1]:DUR;return `<div class="seg" style="flex:${end-ts} 1 0"><i id="sf${i}"></i><span>${n}</span></div>`}).join('');
+
+const R={};
+document.querySelectorAll('[id]').forEach(e=>{R[e.id]=e});
+const txt={};
+function setTxt(id,s){if(txt[id]!==s){txt[id]=s;R[id].textContent=s}}
+const css=getComputedStyle(document.documentElement);
+const INK={blue:css.getPropertyValue('--blue').trim()||'#2A47C4',pink:css.getPropertyValue('--pink').trim()||'#EE2A8C'};
+
+// paper grain (generated once, shifted per frame for a 12 fps "boil")
+(()=>{const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');const d=x.createImageData(256,256);let s=7;for(let i=0;i<d.data.length;i+=4){s=(s*16807)%2147483647;const v=196+(s%60);d.data[i]=d.data[i+1]=d.data[i+2]=v;d.data[i+3]=255}x.putImageData(d,0,0);R.grain.style.backgroundImage=`url(${c.toDataURL()})`})();
+
+// tiny Python tokenizer for the typed code
+const KW=new Set(['def','while','if','else','return']);
+function toks(line){const re=/(\s+)|([A-Za-z_]\w*)|(\d+)|(<=|==|\/\/|\S)/g;const out=[];let m;while((m=re.exec(line))){const s=m[0];let c='';if(m[2])c=KW.has(s)?'tk-k':s==='search'?'tk-f':s==='len'?'tk-b':'';else if(m[3])c='tk-n';else if(m[4])c='tk-o';out.push([s,c])}return out}
+const TOK=CODE.map(toks);
+function partial(tk,n){let h='',k=0;for(const [s,c] of tk){if(k>=n)break;const part=s.slice(0,n-k);k+=s.length;h+=c?`<span class="${c}">${esc(part)}</span>`:esc(part)}return h}
+
+/* ================= SCENES ================= */
+const hk=R['hk-cv'].getContext('2d');
+const HALV=[];{let lo=0,hi=999;const tg=637;while(lo<=hi){const m=(lo+hi)>>1;HALV.push([lo,hi,m]);if(m===tg)break;if(m<tg)lo=m+1;else hi=m-1}}
+function rHook(t){
+  cam(S.hook,960,540,1+.035*pr(t,0,12));
+  op(R['hk-big'],pr(t,0,.12));tf(R['hk-big'],0,0,lerp(1.18,1,tw(t,0,.5,E.back)));
+  op(R['hk-sub'],pr(t,.6,1));tf(R['hk-sub'],0,lerp(24,0,tw(t,.6,1.1)));
+  const lin=t<8.5;
+  setTxt('hk-cl',lin?'checking one by one':'binary search');
+  R['hk-cl'].style.color=lin?'var(--blue)':'var(--pink)';
+  const scanned=(t>=4.4&&lin)?Math.floor(Math.pow(pr(t,4.4,8.4),1.25)*140):-1;
+  let n=0;
+  if(lin){if(scanned>0)n=scanned*1000+(Math.floor(t*991)%1000)}
+  else n=Math.min(20,Math.floor(pr(t,8.6,11)*21));
+  setTxt('hk-cn',fmt(n));
+  for(const id of ['hk-cl','hk-cn','hk-cu'])op(R[id],pr(t,4.2,4.6));
+  op(R['hk-st'],pr(t,11,11.1));tf(R['hk-st'],0,0,lerp(1.7,1,tw(t,11,11.4,E.back)),-8);
+  hk.clearRect(0,0,1250,360);
+  let rg=null,fin=false;
+  if(t>=8.6){const k=Math.min(HALV.length-1,Math.floor((t-8.6)/.26));rg=HALV[k];fin=k===HALV.length-1}
+  for(let i=0;i<1000;i++){
+    const col=i%50,row=(i/50)|0,d0=1+col*.03+row*.012,a=tw(t,d0,d0+.3);
+    if(a<=0)continue;
+    let c=INK.blue,al=.9,r=6*a;
+    if(scanned>=0&&i<scanned)c=INK.pink;
+    if(rg){if(i<rg[0]||i>rg[1])al=.12;if(i===rg[2]){c=INK.pink;r=9}}
+    hk.globalAlpha=al;hk.fillStyle=c;hk.beginPath();hk.arc(12.5+col*25,9+row*18,r,0,6.2832);hk.fill();
+  }
+  if(fin){const p=(t*1.6)%1;hk.globalAlpha=1-p;hk.strokeStyle=INK.pink;hk.lineWidth=3;hk.beginPath();hk.arc(12.5+(637%50)*25,9+((637/50)|0)*18,10+p*34,0,6.2832);hk.stroke()}
+  hk.globalAlpha=1;
+}
+
+function rIdea(t){
+  let gi=-1;GU.forEach((g,i)=>{if(t>=g[0])gi=i});
+  let mkx=rx(50);
+  if(gi>=0){const g=GU[gi];mkx=lerp(gi>0?rx(GU[gi-1][1]):rx(g[1]),rx(g[1]),tw(t,g[0],g[0]+.35,E.inOut))}
+  cam(S.idea,960+(mkx-960)*.08*pr(t,16.5,17.5),540,1+.04*pr(t,12,28));
+  op(R['i-ti'],pr(t,12.1,12.4));tf(R['i-ti'],lerp(-30,0,tw(t,12.1,12.6)),0);
+  op(R['i-rg'],pr(t,12.5,12.8));
+  op(R['i-se'],pr(t,14.2,14.6));tf(R['i-se'],0,0,lerp(.8,1,tw(t,14.2,14.7,E.back)),3);
+  const ru=pr(t,12.8,13.6);op(R['i-ru'],ru>0?1:0);R['i-ru'].style.clipPath=`inset(0 ${100-ru*100}% 0 0)`;
+  let lo=1,hi=100;
+  if(gi>=0){const g=GU[gi];const pl=gi>0?GU[gi-1][3]:1,ph=gi>0?GU[gi-1][4]:100;const p=tw(t,g[0]+.45,g[0]+.9,E.inOut);lo=lerp(pl,g[3],p);hi=lerp(ph,g[4],p)}
+  R['i-dl'].style.width=Math.max(0,(lo-1)*16-3)+'px';
+  const rl=160+hi*16;R['i-dr'].style.left=rl+'px';R['i-dr'].style.width=Math.max(0,1757-rl)+'px';
+  const br=R['i-br'];br.style.left=(160+(lo-1)*16)+'px';br.style.width=((hi-lo+1)*16)+'px';op(br,pr(t,13.6,14));
+  for(const n of RL)op(R['rl'+n],(n>=Math.round(lo)&&n<=Math.round(hi)?1:.3)*ru);
+  const left=Math.round(hi-lo+1);setTxt('i-left',left===1?'1 number left':`${left} numbers still possible`);op(R['i-left'],pr(t,13.6,14));
+  const mk=R['i-mk'],rp=R['i-rp'];
+  if(gi<0){op(mk,0);op(rp,0)}
+  else{
+    const g=GU[gi];op(mk,1);mk.style.left=mkx+'px';setTxt('i-mk',g[1]+(g[2]==='yes!'?'!':'?'));tf(mk,0,lerp(-30,0,tw(t,g[0],g[0]+.3,E.back)));
+    rp.style.left=mkx+'px';setTxt('i-rp',g[2]);rp.classList.toggle('yes',g[2]==='yes!');
+    op(rp,pr(t,g[0]+.35,g[0]+.45));tf(rp,0,0,lerp(1.5,1,tw(t,g[0]+.35,g[0]+.6,E.back)),-6);
+  }
+  const rev=t>=GU[5][0]+.35;setTxt('i-sv',rev?'41':'?');R['i-sv'].classList.toggle('hl',rev);
+  for(let i=0;i<7;i++){const d=23+i*.42;op(R['ic'+i],pr(t,d,d+.15));tf(R['ic'+i],0,lerp(20,0,tw(t,d,d+.35,E.back)));if(i)op(R['ia'+i],pr(t,d-.15,d))}
+  op(R['i-wc'],pr(t,26.2,26.4));tf(R['i-wc'],0,0,lerp(1.3,1,tw(t,26.2,26.5,E.back)),-2);
+}
+
+const lineKey=[],evKey=[];
+const lineY=i=>CY+CP+i*LH+LH/2;
+function ptr(el,track,t){const a=last(track,t);if(a.v==null){op(el,0);return}el.style.left=lerp(ccx(a.prev??a.v),ccx(a.v),tw(a.since,0,.6,E.inOut))+'px';op(el,a.prev==null?pr(a.since,0,.3):1)}
+function rCode(t){
+  // camera leans toward the line being typed, then settles for the trace
+  const a=last(TYPE.map((tt,i)=>[tt,i]),t);const cur=a.v??0,prev=a.prev??cur;
+  const y=lerp(lineY(prev),lineY(cur),tw(a.since,0,.6,E.inOut));
+  const q=tw(t,47.8,49,E.inOut);
+  cam(S.code,960,lerp(540+(y-540)*.35,540,q),lerp(lerp(1,1.06,tw(t,28,29.2,E.inOut)),1,q));
+  tf(R['c-card'],lerp(CX,60,q),lerp(CY,190,q),lerp(1,.78,q));op(R['c-card'],pr(t,28,28.3));
+  for(let i=0;i<CODE.length;i++){
+    const L=CODE[i],dur=Math.min(1,L.length*.03),n=Math.round(pr(t,TYPE[i],TYPE[i]+dur)*L.length);
+    const typing=t>=TYPE[i]&&t<47.8&&(i===CODE.length-1||t<TYPE[i+1]);
+    const key=n+(typing?'c':'');
+    if(lineKey[i]!==key){lineKey[i]=key;R['c-l'+i].innerHTML=partial(TOK[i],n)+(typing?'<span class="cur"></span>':'')}
+  }
+  const h=last(HLT,t),hb=R['c-hl'],hv=h.v??-1,hp=h.prev??hv;
+  if(hv<0){op(hb,hp>=0?.42*(1-pr(h.since,0,.25)):0);if(hp>=0)hb.style.top=(CP+hp*LH)+'px'}
+  else{op(hb,.42);hb.style.top=lerp(CP+(hp>=0?hp:hv)*LH,CP+hv*LH,tw(h.since,0,.25,E.inOut))+'px'}
+  let st=null;for(const s of STEPS)if(t>=s.t)st=s;
+  for(let i=0;i<CODE.length;i++){const e=(st&&st.line===i&&st.ev)?st.ev:'';if(evKey[i]!==e){evKey[i]=e;R['c-e'+i].textContent=e}}
+  MN.forEach(([ln,tt],j)=>{const vis=pr(t,tt,tt+.3)*(1-pr(t,47.4,48));const isCur=j===MN.length-1||t<MN[j+1][1];op(R['mn'+j],vis*(isCur?1:.4));tf(R['mn'+j],lerp(-20,0,tw(t,tt,tt+.4)),0)});
+  // ---- trace stage
+  op(R['t-grp'],pr(t,48.3,48.9));
+  op(R['t-tg'],pr(t,49.2,49.5));op(R['t-lk'],pr(t,49.4,49.7));
+  NUMS.forEach((v,i)=>{
+    const d=48.5+i*.06;let gone=0;
+    for(const [tt,a2,b2] of DROPS)if(i>=a2&&i<=b2)gone=Math.max(gone,tw(t,tt,tt+.5));
+    const f=FOUND&&i===FOUND[1]?tw(t,FOUND[0],FOUND[0]+.4,E.back):0;
+    const c=R['cl'+i];c.classList.toggle('gone',gone>.5);c.classList.toggle('found',f>0);
+    tf(c,0,lerp(-60,0,tw(t,d,d+.45,E.back))+16*gone,1+.14*f,((i*37)%7-3)*gone);
+    op(c,pr(t,d,d+.2)*(1-.55*gone));
+  });
+  ptr(R['p-lo'],LO,t);ptr(R['p-hi'],HI,t);ptr(R['p-mid'],MID,t);
+  const vs=[last(LO,t),last(HI,t),last(MID,t)];
+  vs.forEach((a2,i)=>{setTxt('w'+i,a2.v==null?'–':String(a2.v));R['wv'+i].classList.toggle('fl',a2.since<.6)});
+  setTxt('w3',vs[2].v==null?'–':String(NUMS[vs[2].v]));R['wv3'].classList.toggle('fl',vs[2].since<.6);
+  op(R['t-w'],pr(t,49.6,50)*(1-pr(t,79.6,80)));
+  setTxt('t-lkn',String(MID.filter(([tt])=>t>=tt).length));
+  const c=last(CMP,t),cb=R['t-cmp'];
+  if(c.v){const [l,o,r2,v]=c.v;const k=c.v.join('|');if(txt['t-cmp']!==k){txt['t-cmp']=k;cb.innerHTML=`${esc(l)} ${esc(o)} ${esc(r2)}<span class="v ${v==='?'?'q':v}">${v}</span>`}cb.style.left=ccx(vs[2].v)+'px';op(cb,pr(c.since,0,.2));tf(cb,0,lerp(10,0,tw(c.since,0,.3)))}
+  else op(cb,0);
+  op(R['t-fd'],pr(t,77.6,77.7));tf(R['t-fd'],0,0,lerp(1.6,1,tw(t,77.6,78,E.back)),-10);
+  const rp=pr(t,77.4,78.4);op(R['t-ring'],rp>0&&rp<1?1-rp:0);tf(R['t-ring'],0,0,1+rp*8);
+  const k=Math.min(5,Math.floor(pr(t,81.4,83.5)*6));R['t-scan'].style.left=ccx(k)+'px';op(R['t-scan'],t>=81.4&&t<85.4?1:0);
+  op(R['t-ra'],pr(t,80,80.3));op(R['t-rb'],pr(t,81.2,81.5));
+  for(let i=0;i<3;i++)op(R['da'+i],pr(t,80.3+i*.3,80.4+i*.3));
+  for(let i=0;i<6;i++)op(R['db'+i],pr(t,81.4+i*.35,81.5+i*.35));
+}
+
+function rSpeed(t){
+  cam(S.speed,960,540,1+.03*pr(t,86,100));
+  op(R['s-ti'],pr(t,86.1,86.4));tf(R['s-ti'],lerp(-30,0,tw(t,86.1,86.6)),0);
+  op(R['s-st'],pr(t,86.5,86.8));op(R['s-lg'],pr(t,86.8,87.2));
+  SR.forEach(([n,b,y,ta],i)=>{
+    const p=tw(t,ta,ta+1.4,E.inOut),w=Math.min(n*1.3,2200)*p;
+    op(R['sn'+i],pr(t,ta-.3,ta));R['sb'+i].style.width=w+'px';
+    const lv=R['sl'+i];
+    if(n<1e6){lv.style.left=(480+w+12)+'px';lv.style.color='var(--blue)';setTxt('sl'+i,fmt(n*p))}
+    else{lv.style.left='500px';lv.style.color='var(--card)';setTxt('sl'+i,fmt(n*p)+' looks → off the page')}
+    op(lv,pr(t,ta,ta+.1));
+    const ds=R['sd'+i].children;for(let j=0;j<b;j++)op(ds[j],pr(t,ta+.2+j*(.9/b),ta+.3+j*(.9/b)));op(ds[b],pr(t,ta+1.1,ta+1.3));
+  });
+  op(R['s-db'],pr(t,96,96.3));tf(R['s-db'],0,lerp(-20,0,tw(t,96,96.5,E.back)));
+  op(R['s-on'],pr(t,97.2,97.3));tf(R['s-on'],0,0,lerp(1.7,1,tw(t,97.2,97.6,E.back)),-8);
+}
+
+function rTrap(t){
+  const z=tw(t,100.2,101.2,E.inOut)*(1-tw(t,103.4,104.4,E.inOut));
+  cam(S.trap,lerp(960,560,z),lerp(540,420,z),lerp(1,1.3,z));
+  op(R['x-ti'],pr(t,100.05,100.3));op(R['x-code'],pr(t,100,100.2));
+  const xo=R['x-op'];let s='<=',cls='';
+  if((t>=100.2&&t<100.9)||(t>=108.8&&t<109.3)){s=Math.floor(t*14)%2?'<':'<=';cls='glitch';xo.style.translate=`${(Math.floor(t*31)%5-2)*3}px ${(Math.floor(t*17)%3-1)*3}px`}
+  else{xo.style.translate='0 0';if(t>=100.9&&t<108.8){s='<';cls='bad'}else if(t>=109.3)cls='good'}
+  setTxt('x-op',s);xo.className='xop '+cls;
+  const fixed=t>=108.8;
+  setTxt('x-c0',t>=104.9?'# lo = 0, hi = 0':'');
+  setTxt('x-c1',t>=105.8?(fixed?'# 0 <= 0 → True':'# 0 < 0 → False'):'');
+  setTxt('x-c2',t>=106.6?(fixed?'# mid = 0 → found it':'# never runs'):'');
+  setTxt('x-c3',t>=107.4&&!fixed?'# returns -1 ✗':'');
+  op(R['x-test'],pr(t,104.6,104.9));tf(R['x-test'],0,lerp(20,0,tw(t,104.6,105,E.back)));
+  setTxt('x-got',t<107.4?'…':t<109.4?'-1 ✗':'0 ✓');
+  R['x-got'].style.color=t>=107.4&&t<109.4?'var(--pink)':'var(--ink)';R['x-got'].classList.toggle('hl',t>=109.4);
+  const sa=t<109.4?107.5:109.4;setTxt('x-bug',t<109.4?'bug':'fixed');
+  op(R['x-bug'],pr(t,107.5,107.6));tf(R['x-bug'],0,0,lerp(1.6,1,tw(t,sa,sa+.4,E.back)),-10);
+  op(R['x-so'],pr(t,109.8,110.1));tf(R['x-so'],0,lerp(24,0,tw(t,109.8,110.3,E.back)));
+}
+
+function rRecap(t){
+  cam(S.recap,960,540,1+.02*pr(t,112,120));
+  [0,1,2].forEach(i=>{const d=112.3+i*1.1;op(R['r-'+i],pr(t,d,d+.2));tf(R['r-'+i],0,lerp(60,0,tw(t,d,d+.5,E.back)),1,lerp(0,[-3,1.5,-1.5][i],tw(t,d,d+.6)))});
+  op(R['r-ft'],pr(t,115.6,115.9));
+  op(R['r-nx'],pr(t,116.5,116.8));tf(R['r-nx'],lerp(-30,0,tw(t,116.5,117)),0);
+}
+
+/* ================= HUD ================= */
+function parseCap(s){const out=[];const re=/\[([^\]]+)\](\S*)|\{([^}]+)\}(\S*)|(\S+)/g;let m;while((m=re.exec(s))){const g=m[1]||m[3],tail=m[2]||m[4]||'';if(g){const ws=g.split(' ');ws.forEach((w,i)=>out.push([w+(i===ws.length-1?tail:''),m[1]?'p':'b']))}else out.push([m[5],''])}return out}
+let capIdx=-2,choice=null,voice=false,playing=false;
+function speak(text){if(!voice||!playing||!('speechSynthesis' in window))return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.rate=Math.min(2,1.08*rate);speechSynthesis.speak(u)}catch(e){}}
+function renderCap(t){
+  const i=CAP.findIndex(c=>t>=c[0]&&t<c[1]);
+  const ci=R['cap-in'];
+  if(i!==capIdx){
+    capIdx=i;
+    if(i<0){ci.innerHTML='';R['cap-ext'].textContent=''}
+    else{const ws=parseCap(CAP[i][2]);ci.innerHTML=ws.map(([w,c])=>`<span class="w ${c}">${esc(w)}</span>`).join(' ');const plain=ws.map(w=>w[0]).join(' ');R['cap-ext'].textContent=plain;speak(plain)}
+  }
+  if(i>=0){const [a,b]=CAP[i],sp=ci.children,n=sp.length,k=Math.min(n-1,Math.floor(pr(t,a,a+(b-a)*.85)*n));for(let j=0;j<n;j++){sp[j].classList.toggle('on',j<=k);sp[j].classList.toggle('now',j===k)}}
+}
+const WB=[[12,1],[28,2],[86,4],[100,5],[112,6]];
+let noteIdx=-1;
+function rHud(t){
+  let ci=0;CH.forEach(([,ts],i)=>{if(t>=ts)ci=i});
+  CH.forEach(([,ts],i)=>{const end=i<CH.length-1?CH[i+1][1]:DUR;const cls='pill'+(i<ci?' past':i===ci?' now':'');if(R['ch'+i].className!==cls)R['ch'+i].className=cls;R['pg'+i].style.width=(i===ci?pr(t,ts,end)*100:0)+'%';R['sf'+i].style.width=pr(t,ts,end)*100+'%'});
+  renderCap(t);
+  const pd=R.pd,pv=pr(t,64.2,64.5)*(1-pr(t,68.5,68.9));
+  op(pd,pv);pd.style.visibility=pv>0?'visible':'hidden';tf(pd,0,lerp(30,0,tw(t,64.2,64.6,E.back)));
+  if(t<64){if(choice){choice=null;R['pc-L'].classList.remove('picked');R['pc-R'].classList.remove('picked')}}
+  if(pv>0){
+    const cp=pr(t,64.8,67.8),rev=t>=67.8;
+    R['pd-ring'].setAttribute('stroke-dashoffset',(213.6*cp).toFixed(1));
+    setTxt('pd-n',rev?'✓':String(3-Math.min(2,Math.floor(cp*3))));
+    R['pc-L'].classList.toggle('right',rev);R['pc-R'].classList.toggle('wrong',rev);
+    setTxt('pd-fb',!rev?(choice?'Locked in. Wait for it.':'Tap an answer before the timer runs out.'):choice==='L'?'You said left. Correct.':choice==='R'?'You said right. Not quite: 12 < 23.':'Left. 12 < 23, so 23 sits further right.');
+  }
+  let w=null;for(const b of WB)if(Math.abs(t-b[0])<.45)w=b;
+  if(w){const p=E.inOut(pr(t,w[0]-.45,w[0]+.45));R.wipe.style.transform=`translateX(${lerp(-2320,2020,p)}px)`;setTxt('wipe-t',String(w[1]+1).padStart(2,'0')+' '+CH[w[1]][0]);R.wipe.style.visibility='visible'}
+  else R.wipe.style.visibility='hidden';
+  if(!RM){const f=Math.floor(t*8);stage.style.setProperty('--mx',(2+((f*7)%3-1)*.8)+'px');stage.style.setProperty('--my',(1+((f*5)%3-1)*.8)+'px');R.grain.style.backgroundPosition=`${(f*73)%256}px ${(f*151)%256}px`}
+  let ni=0;NOTES.forEach((n,i)=>{if(t>=n[0])ni=i});
+  if(ni!==noteIdx){noteIdx=ni;const n=NOTES[ni];R['nt-ch'].textContent=n[1];R['nt-t'].textContent=n[2];R['nt-b'].textContent=n[3]}
+}
+
+function render(t){
+  const vis=[t<12,t>=12&&t<28,t>=28&&t<86,t>=86&&t<100,t>=100&&t<112,t>=112];
+  ['hook','idea','code','speed','trap','recap'].forEach((k,i)=>{if(S[k].hidden===vis[i])S[k].hidden=!vis[i]});
+  if(t<12)rHook(t);else if(t<28)rIdea(t);else if(t<86)rCode(t);else if(t<100)rSpeed(t);else if(t<112)rTrap(t);else rRecap(t);
+  rHud(t);
+}
+
+/* ================= PLAYER ================= */
+let t=9.6,rate=1,prevTs=null,lastR=-1,firstPlay=true,drag=false;
+const m=/^#t(\d+(?:\.\d+)?)$/.exec(location.hash);
+if(m){t=clamp(+m[1],0,DUR);firstPlay=false;poster.hidden=true}
+function fit(){stage.style.transform=`scale(${screen.clientWidth/1920})`}
+new ResizeObserver(fit).observe(screen);fit();
+const mmss=s=>`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+function setPlaying(p){
+  if(p&&firstPlay){firstPlay=false;t=0}
+  if(p&&t>=DUR)t=0;
+  playing=p;poster.hidden=poster.hidden||p;
+  R['play-ic'].setAttribute('d',p?'M6 4.5h4v15H6zM14 4.5h4v15h-4z':'M7 4.5v15l12.5-7.5z');
+  R.play.setAttribute('aria-label',p?'Pause':'Play');
+  if(p){capIdx=-2}else{try{speechSynthesis.cancel()}catch(e){}}
+}
+function seek(x){firstPlay=false;poster.hidden=true;t=clamp(x,0,DUR)}
+function loop(ts){
+  if(prevTs==null)prevTs=ts;const dt=Math.min(.1,(ts-prevTs)/1000);prevTs=ts;
+  if(playing&&!drag){t=Math.min(DUR,t+dt*rate);if(t>=DUR)setPlaying(false)}
+  if(t!==lastR){render(t);lastR=t;R.time.textContent=`${mmss(t)} / 2:00`;R.head.style.left=(t/DUR*100)+'%';R.scrub.setAttribute('aria-valuenow',Math.round(t));R.scrub.setAttribute('aria-valuetext',`${mmss(t)}, ${CH.reduce((a,c)=>t>=c[1]?c[0]:a,'Hook')}`)}
+  requestAnimationFrame(loop);
+}
+R.play.addEventListener('click',()=>setPlaying(!playing));
+R.bigplay.addEventListener('click',e=>{e.stopPropagation();setPlaying(true)});
+screen.addEventListener('click',e=>{if(e.target.closest('.choice'))return;setPlaying(!playing)});
+['L','R'].forEach(c=>R['pc-'+c].addEventListener('click',e=>{e.stopPropagation();if(t>=67.8)return;choice=c;R['pc-L'].classList.toggle('picked',c==='L');R['pc-R'].classList.toggle('picked',c==='R');lastR=-1}));
+const sx=x=>{const r=R.scrub.getBoundingClientRect();return (x-r.left)/r.width*DUR};
+R.scrub.addEventListener('pointerdown',e=>{drag=true;R.scrub.setPointerCapture(e.pointerId);seek(sx(e.clientX))});
+R.scrub.addEventListener('pointermove',e=>{if(drag)seek(sx(e.clientX))});
+R.scrub.addEventListener('pointerup',()=>{drag=false;capIdx=-2});
+R.scrub.addEventListener('pointercancel',()=>{drag=false});
+document.addEventListener('keydown',e=>{
+  if(e.target.closest&&e.target.closest('button')&&(e.key===' '||e.key==='Enter'))return;
+  if(e.key===' '||e.key==='k'){e.preventDefault();setPlaying(!playing)}
+  else if(e.key==='ArrowRight'){e.preventDefault();seek(t+5)}
+  else if(e.key==='ArrowLeft'){e.preventDefault();seek(t-5)}
+});
+const RATES=[1,1.25,1.5,.75];
+R.spd.addEventListener('click',()=>{rate=RATES[(RATES.indexOf(rate)+1)%RATES.length];R.spd.textContent=rate+'×'});
+R.cc.addEventListener('click',()=>{const on=R.cc.getAttribute('aria-pressed')!=='true';R.cc.setAttribute('aria-pressed',String(on));document.body.classList.toggle('nocc',!on)});
+if(!('speechSynthesis' in window)){R.voice.disabled=true;R.voice.title='This browser has no built-in voice'}
+R.voice.addEventListener('click',()=>{voice=!voice;R.voice.setAttribute('aria-pressed',String(voice));if(!voice){try{speechSynthesis.cancel()}catch(e){}}else capIdx=-2});
+render(t);
+requestAnimationFrame(loop);
+})();
+</script>
